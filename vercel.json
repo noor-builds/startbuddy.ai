@@ -1,5 +1,5 @@
 {
-  "buildCommand": "git clone https://github.com/noor-builds/startbuddy.ai --depth 1 -b stable /tmp/flutter && /tmp/flutter/bin/flutter config --enable-web && /tmp/flutter/bin/flutter pub get && /tmp/flutter/bin/flutter build web",
+  "buildCommand": "flutter build web",
   "outputDirectory": "build/web",
   "rewrites": [
     {
