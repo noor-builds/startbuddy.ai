@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:startbuddy/service/auth/auth_servvice.dart';
-import 'package:startbuddy/theme.dart';
+import 'package:startbuddy/service/auth/auth_service.dart';
+
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -38,7 +38,6 @@ class _LoginState extends State<Login> {
                     child: Container(
                       height: 300,
                       width: 300,
-
                       child: Image.asset("assets/logo.png"),
                     ),
                   ),
@@ -81,31 +80,21 @@ class _LoginState extends State<Login> {
                       suffixIcon: const Icon(Icons.visibility_off_outlined),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      'Forgot password?',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
+              
                   const SizedBox(height: 28),
                   SizedBox(
                     height: 56,
                     child: ElevatedButton(
                       onPressed: () async {
-                        await AuthService()
+                        final response = await AuthService()
                             .signInWithEmailPassword(
                               emailController.text,
                               passwordController.text,
                               context: context,
                             );
-                        
-                         context.go('/');
-                       
+                        if (response != null && context.mounted) {
+                          context.push('/');
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         disabledBackgroundColor: Theme.of(
@@ -131,21 +120,9 @@ class _LoginState extends State<Login> {
                     ],
                   ),
                   const SizedBox(height: 24),
-                  SizedBox(
-                    height: 56,
-                    child: OutlinedButton.icon(
-                      onPressed: null,
-                      icon: const Icon(Icons.g_mobiledata_rounded, size: 30),
-                      label: const Text('Continue with Google'),
-                      style: OutlinedButton.styleFrom(
-                        disabledForegroundColor:
-                            Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white
-                            : AppTheme.textPrimaryLight,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 30),
+                
+                
+                  const SizedBox(height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

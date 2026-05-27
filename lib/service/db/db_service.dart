@@ -11,7 +11,7 @@ class DbService {
     final user = _supabase.auth.currentUser;
 
     try {
-     return await _supabase.from('users').insert({
+      await _supabase.from('users').insert({
         'auth_id': user!.id,
         'name': name.trim(),
         'email': email.trim(),

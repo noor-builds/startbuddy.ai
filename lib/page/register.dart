@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:startbuddy/service/auth/auth_servvice.dart';
+import 'package:startbuddy/service/auth/auth_service.dart';
 import 'package:startbuddy/service/db/db_service.dart';
-import 'package:startbuddy/theme.dart';
+
 
 class Register extends StatefulWidget {
   const Register({super.key});
@@ -45,7 +45,6 @@ class _RegisterState extends State<Register> {
                     child: Container(
                       height: 300,
                       width: 300,
-
                       child: Image.asset("assets/logo.png"),
                     ),
                   ),
@@ -106,19 +105,12 @@ class _RegisterState extends State<Register> {
                         ),
                         onPressed: () {
                           setState(() {
-                            if(isobscure == false) {
-                              isobscure =true;
-                            }
-                            else {
-                              isobscure = false;
-                            }
-
+                            isobscure = !isobscure;
                           });
                         },
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 16),
                   TextField(
                     controller: ageController,
@@ -132,19 +124,9 @@ class _RegisterState extends State<Register> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      'Forgot password?',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 28),
 
+            
+                  const SizedBox(height: 28),
                   SizedBox(
                     height: 56,
                     child: ElevatedButton(
@@ -157,13 +139,36 @@ class _RegisterState extends State<Register> {
                             );
                         if (!context.mounted || response == null) return;
 
-                       await DbService().createUser(
-                          name: nameController.text,
-                          age: int.parse(ageController.text),
-                          email: emailController.text.trim(),
-                        );
+                        final age = int.tryParse(ageController.text);
+                        if (age == null) {
+                          if (context.mounted) {
+                            AuthService().showAuthPopup(
+                              context,
+                              message: 'Please enter a valid age.',
+                              isError: true,
+                            );
+                          }
+                          return;
+                        }
 
-                        context.go('/');
+                        try {
+                          await DbService().createUser(
+                            name: nameController.text,
+                            age: age,
+                            email: emailController.text.trim(),
+                          );
+                        } catch (e) {
+                          if (context.mounted) {
+                            AuthService().showAuthPopup(
+                              context,
+                              message: e.toString(),
+                              isError: true,
+                            );
+                          }
+                          return;
+                        }
+
+                        if (context.mounted) context.push('/');
                       },
                       style: ElevatedButton.styleFrom(
                         disabledBackgroundColor: Theme.of(
@@ -189,21 +194,8 @@ class _RegisterState extends State<Register> {
                     ],
                   ),
                   const SizedBox(height: 24),
-                  SizedBox(
-                    height: 56,
-                    child: OutlinedButton.icon(
-                      onPressed: null,
-                      icon: const Icon(Icons.g_mobiledata_rounded, size: 30),
-                      label: const Text('Continue with Google'),
-                      style: OutlinedButton.styleFrom(
-                        disabledForegroundColor:
-                            Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white
-                            : AppTheme.textPrimaryLight,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 30),
+              
+                
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

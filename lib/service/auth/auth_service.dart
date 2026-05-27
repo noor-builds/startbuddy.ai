@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthService {
@@ -125,18 +126,20 @@ class AuthService {
   // Get auth state changes stream
   Stream<AuthState> get authStateChanges => _supabase.auth.onAuthStateChange;
 
-  // google sign in
-  Future<void> signInWithGoogle({BuildContext? context}) async {
+  Future<bool> signInWithGoogle() async {
     try {
       await _supabase.auth.signInWithOAuth(
         OAuthProvider.google,
-        redirectTo: kIsWeb ? null : 'com.startbuddy.app://auth/callback',
-        queryParams: {'prompt': 'select_account'},
+
+        redirectTo: kIsWeb ? 'http://localhost:3000' : null,
+
+        authScreenLaunchMode: LaunchMode.platformDefault,
       );
+
+      return true;
     } catch (e) {
-      if (context != null && context.mounted) {
-        showAuthPopup(context, message: e.toString(), isError: true);
-      }
+      debugPrint('Google Sign-In Error: $e');
+      return false;
     }
   }
 }
