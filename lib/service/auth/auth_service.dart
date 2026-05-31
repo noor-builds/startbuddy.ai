@@ -4,10 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthService {
+  static final AuthService _instance = AuthService._();
+  factory AuthService() => _instance;
+
   final SupabaseClient _supabase = Supabase.instance.client;
   final ValueNotifier<int> authNotifier = ValueNotifier<int>(0);
 
-  AuthService() {
+  AuthService._() {
     _supabase.auth.onAuthStateChange.listen((_) {
       authNotifier.value++;
     });

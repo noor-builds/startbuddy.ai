@@ -1,17 +1,34 @@
-import { createClient } from '@supabase/supabase-js'
-import ws from 'ws'
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { createClient } from '@supabase/supabase-js';
+import ws from 'ws';
+import dotenv from 'dotenv';
 
-import dotenv from 'dotenv'
-dotenv.config()
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, '.env') });
 
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const supabaseUrl = process.env.SUPABASE_URL
-const supabaseKey = process.env.SUPABASE_KEY
+if (!supabaseUrl?.trim() || !supabaseKey?.trim()) {
+  throw new Error('SUPABASE_URL and SUPABASE_KEY must be configured in server/.env');
+}
 
-const supabase = createClient(supabaseUrl, supabaseKey, {
+const clientOptions = {
   realtime: {
     transport: ws,
   },
-})
+};
 
-export { supabase };
+const supabase = createClient(supabaseUrl, supabaseKey, clientOptions);
+
+const supabaseAdmin = createClient(
+  supabaseUrl,
+  supabaseServiceRoleKey?.trim() || supabaseKey,
+  clientOptions
+);
+
+const hasServiceRoleKey = Boolean(supabaseServiceRoleKey?.trim());
+
+export { supabase, supabaseAdmin, hasServiceRoleKey };

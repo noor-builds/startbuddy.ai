@@ -50,14 +50,30 @@ class DbService {
 
 
 
-  Future fetchUserStartupName() async {
-  final response = await Supabase.instance.client
-      .from('users')
-      .select('startup_name')
-      .eq('auth_id',_supabase.auth.currentUser!.id)
-      .maybeSingle();
+  Future<List<Map<String, dynamic>>> fetchUserStartups() async {
+    final user = _supabase.auth.currentUser;
 
-  final startupName = response?['startup_name'] as String?;
-  return startupName;
-}
+    if (user == null) {
+      throw const AuthException('You must be signed in to view your startups.');
+    }
+
+    final response = await _supabase
+        .from('startup')
+        .select('id, created_at, "startup name", description, validation_report')
+        .eq('authid', user.id)
+        .order('created_at', ascending: false);
+
+    return List<Map<String, dynamic>>.from(response);
+  }
+
+  Future<String?> fetchLatestStartupName() async {
+    final startups = await fetchUserStartups();
+    if (startups.isEmpty) return null;
+    return startups.first['startup name'] as String?;
+  }
+
+  @Deprecated('Use fetchLatestStartupName or fetchUserStartups')
+  Future fetchUserStartupName() async {
+    return fetchLatestStartupName();
+  }
 }

@@ -12,6 +12,9 @@ app.use(express.json());
 
 app.use("/auth", (await import("./routes/auth_route.js")).default);
 
+// AI routes
+app.use("/ai", (await import("./routes/ai_route.js")).default);
+
 
 
 app.listen(process.env.PORT, () => {

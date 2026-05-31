@@ -24,7 +24,7 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       routerConfig: router,
-      title: 'Flutter Demo',
+      title: 'startbuddy.ai',
       debugShowCheckedModeBanner: false,
     );
   }
