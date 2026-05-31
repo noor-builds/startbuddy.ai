@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:startbuddy/service/auth/auth_service.dart';
 import 'package:startbuddy/theme.dart';
@@ -10,7 +11,15 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
+final TextEditingController promptcontroller = TextEditingController();
+
 class _HomePageState extends State<HomePage> {
+  @override
+  void dispose() {
+    promptcontroller.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
@@ -133,6 +142,7 @@ class _HomePageState extends State<HomePage> {
                                 children: [
                                   Expanded(
                                     child: TextField(
+                                      controller: promptcontroller,
                                       minLines: 3,
                                       maxLines: 8,
                                       keyboardType: TextInputType.multiline,
@@ -154,7 +164,23 @@ class _HomePageState extends State<HomePage> {
                                   ),
                                   const SizedBox(width: 12),
                                   IconButton(
-                                    onPressed: () {},
+                                    onPressed: () {
+                                      final idea = promptcontroller.text.trim();
+                                      if (idea.isEmpty) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Describe your startup idea first.',
+                                            ),
+                                            behavior: SnackBarBehavior.floating,
+                                            duration: Duration(seconds: 2),
+                                          ),
+                                        );
+                                        return;
+                                      }
+                                      context.push('/validate', extra: idea);
+                                    },
                                     icon: Icon(
                                       Icons.arrow_upward,
                                       color: Colors.white.withValues(
