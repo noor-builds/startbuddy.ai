@@ -12,9 +12,11 @@ const SEARCH_MODEL = process.env.GEMINI_SEARCH_MODEL ?? DEFAULT_MODEL;
 function assertApiKey() {
   const apiKey = process.env.GOOGLE_API_KEY;
   if (!apiKey?.trim()) {
-    throw new Error(
-      'GOOGLE_API_KEY is not configured. Set it in server/.env or the environment.'
+    const err = new Error(
+      'GOOGLE_API_KEY is not configured. Set it in server/.env or the Vercel project environment.'
     );
+    err.code = 'MISSING_API_KEY';
+    throw err;
   }
   return apiKey.trim();
 }

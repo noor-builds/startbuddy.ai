@@ -1,8 +1,10 @@
 import 'package:go_router/go_router.dart';
+import 'package:startbuddy/models/startup.dart';
 import 'package:startbuddy/page/home.dart';
 import 'package:startbuddy/page/loading.dart';
 import 'package:startbuddy/page/login.dart';
 import 'package:startbuddy/page/register.dart';
+import 'package:startbuddy/page/workspace.dart';
 import 'package:startbuddy/service/auth/auth_service.dart';
 
 final AuthService _auth = AuthService();
@@ -25,11 +27,37 @@ final GoRouter router = GoRouter(
     ),
     GoRoute(path: '/login', builder: (context, state) => const Login()),
     GoRoute(path: '/register', builder: (context, state) => const Register()),
+    GoRoute(
+      path: '/workspace/:startupid',
+      builder: (context, state) {
+        final startupId = int.tryParse(state.pathParameters['startupid'] ?? '');
+        final extra = state.extra;
+
+        if (extra is Startup) {
+          return Workspace(startup: extra);
+        }
+
+        if (extra is Map) {
+          final startupData = Map<String, dynamic>.from(extra);
+          startupData['id'] ??= startupId;
+          return Workspace(startup: Startup.fromJson(startupData));
+        }
+
+        return Workspace(
+          startup: Startup(
+            id: startupId ?? 0,
+            startupName: '',
+            description: '',
+          ),
+        );
+      },
+    ),
   ],
   redirect: (context, state) {
     final loggedIn = _auth.currentUser != null;
 
-    final isAuthPage = state.matchedLocation == '/login' ||
+    final isAuthPage =
+        state.matchedLocation == '/login' ||
         state.matchedLocation == '/register';
 
     if (!loggedIn && !isAuthPage) {

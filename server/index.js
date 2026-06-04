@@ -5,7 +5,15 @@ import cors from 'cors';
 dotenv.config();
 
 const app = express();
-app.use(cors());
+
+const corsOptions = {
+  origin: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
+app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 app.use(express.json());
 
 app.get('/health', (_req, res) => {
@@ -14,6 +22,7 @@ app.get('/health', (_req, res) => {
 
 app.use('/auth', (await import('./routes/auth_route.js')).default);
 app.use('/ai', (await import('./routes/ai_route.js')).default);
+app.use('/integration', (await import('./routes/integration_route.js')).default);
 
 const port = Number(process.env.PORT) || 3001;
 

@@ -5,15 +5,26 @@ import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class HttpService {
-  static const productionBaseUrl = 'https://startbuddybackend.vercel.app';
+  static const _configuredBaseUrl = String.fromEnvironment(
+    'STARTBUDDY_API_BASE_URL',
+  );
 
-  /// Flutter web debug: run `npm run dev` in `server/` (uses port from .env).
-  static const localBaseUrl = 'http://localhost:3001';
+  static String get baseUrl {
+    if (_configuredBaseUrl.isNotEmpty) {
+      return _configuredBaseUrl;
+    }
 
-  static String get baseUrl =>
-      kIsWeb && kDebugMode ? localBaseUrl : productionBaseUrl;
+    if (kDebugMode) {
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        return 'https://startbuddybackend.vercel.app';
+      }
+      return 'https://startbuddybackend.vercel.app';
+    }
 
-  Future<http.Response> validate(String prompt) async {
+    return 'https://startbuddybackend.vercel.app';
+  }
+
+   Future<http.Response> validate(String prompt) async {
     return http.post(
       Uri.parse('$baseUrl/ai/validate-idea'),
       headers: {'Content-Type': 'application/json'},
@@ -22,15 +33,5 @@ class HttpService {
         'prompt': prompt,
       }),
     );
-  }
-
-  /// Quick check that the browser can reach the API (CORS + network).
-  Future<bool> canReachApi() async {
-    try {
-      final response = await http.get(Uri.parse('$baseUrl/health'));
-      return response.statusCode == 200;
-    } catch (_) {
-      return false;
-    }
   }
 }

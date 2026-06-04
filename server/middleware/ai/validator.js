@@ -17,9 +17,12 @@ const STARTUP_REPORTS_FOLDER =
 const MAX_PROMPT_LENGTH = 6_000;
 const MAX_NAME_LENGTH = 120;
 const MAX_DESCRIPTION_LENGTH = 4_000;
-const REQUEST_TIMEOUT_MS = Number(process.env.AI_REQUEST_TIMEOUT_MS ?? 120_000);
+const isVercelDeploy = Boolean(process.env.VERCEL);
+const REQUEST_TIMEOUT_MS = Number(
+  process.env.AI_REQUEST_TIMEOUT_MS ?? (isVercelDeploy ? 45_000 : 120_000)
+);
 const RESEARCH_TIMEOUT_MS = Number(
-  process.env.AI_RESEARCH_TIMEOUT_MS ?? 300_000
+  process.env.AI_RESEARCH_TIMEOUT_MS ?? (isVercelDeploy ? 45_000 : 300_000)
 );
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -128,7 +131,9 @@ function logStep(message) {
 
 function wrapUnknownError(error, message, code) {
   if (error instanceof ValidatorError) return error;
-  return new ValidatorError(message, {
+  const detail =
+    error instanceof Error && error.message ? `: ${error.message}` : '';
+  return new ValidatorError(`${message}${detail}`, {
     code,
     statusCode: 500,
     cause: error,
@@ -267,6 +272,18 @@ Clearly note where figures are estimates rather than live-sourced data. Do not f
 }
 
 async function researchStartupMarket(startupName, startupDescription) {
+  const useWebSearch =
+    process.env.AI_USE_WEB_SEARCH === 'true' ||
+    (!isVercelDeploy && process.env.AI_USE_WEB_SEARCH !== 'false');
+
+  if (!useWebSearch) {
+    return withTimeout(
+      researchStartupWithoutWebSearch(startupName, startupDescription),
+      RESEARCH_TIMEOUT_MS,
+      'Market research'
+    );
+  }
+
   try {
     return await withTimeout(
       researchStartupWithWebSearch(startupName, startupDescription),
@@ -454,7 +471,7 @@ async function validateStartupFromPrompt({ prompt, authId }) {
   const safePrompt = sanitizePrompt(prompt);
   const safeAuthId = sanitizeAuthId(authId);
 
-  await ensureUserProfile(safeAuthId);
+  await ensureUserProfile(safeAuthId, { createIfMissing: true });
 
   let uploadedStoragePath = null;
 

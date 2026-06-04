@@ -134,7 +134,7 @@ class AuthService {
       await _supabase.auth.signInWithOAuth(
         OAuthProvider.google,
 
-        redirectTo: kIsWeb ? 'http://localhost:3000' : null,
+        redirectTo: kIsWeb ? Uri.base.origin : null,
 
         authScreenLaunchMode: LaunchMode.platformDefault,
       );

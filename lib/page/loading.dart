@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:startbuddy/service/http.dart';
 import 'package:startbuddy/theme.dart';
 
@@ -33,7 +33,8 @@ class _LoadingPageState extends State<LoadingPage>
   _Status _status = _Status.loading;
   String? _errorMessage;
   String? _startupName;
-
+  int? _startupId;
+  Map<String, dynamic>? _startupData;
   Timer? _stepTimer;
 
   @override
@@ -64,18 +65,14 @@ class _LoadingPageState extends State<LoadingPage>
   }
 
   Future<void> _validate() async {
-    final api = HttpService();
-
-    if (kIsWeb) {
-      final reachable = await api.canReachApi();
-      if (!reachable) {
-        _finishError(_connectionHelp(HttpService.baseUrl));
-        return;
-      }
+    final authId = Supabase.instance.client.auth.currentUser?.id;
+    if (authId == null) {
+      _finishError('You must be signed in to validate your idea.');
+      return;
     }
 
     try {
-      final response = await api.validate(widget.prompt.trim());
+      final response = await HttpService().validate(widget.prompt.trim());
 
       final body = jsonDecode(response.body);
       if (response.statusCode >= 200 &&
@@ -83,8 +80,13 @@ class _LoadingPageState extends State<LoadingPage>
           body is Map &&
           body['ok'] == true) {
         final data = body['data'];
+        final startup = data is Map ? data['startup'] : null;
+        final startupData = startup is Map
+            ? Map<String, dynamic>.from(startup)
+            : null;
         final name = data is Map ? data['startupName'] as String? : null;
-        _finishSuccess(name);
+        final id = startupData?['id'] as int?;
+        _finishSuccess(name, id, startupData);
         return;
       }
 
@@ -105,41 +107,26 @@ class _LoadingPageState extends State<LoadingPage>
   }
 
   String _friendlyError(Object e) {
-    if (e is http.ClientException ||
-        e.toString().contains('Failed to fetch')) {
-      return _connectionHelp(HttpService.baseUrl);
+    if (e is http.ClientException || e.toString().contains('Failed to fetch')) {
+      return 'We could not connect to StartBuddy right now. '
+          'Please check your connection and try again.';
     }
     return 'Something went wrong. Please try again.';
   }
 
-  String _connectionHelp(String baseUrl) {
-    if (kDebugMode && baseUrl == HttpService.localBaseUrl) {
-      return 'Cannot reach the API at $baseUrl.\n\n'
-          'In a terminal, run:\n'
-          '  cd server\n'
-          '  npm run dev\n\n'
-          'Then press Try again.';
-    }
-
-    if (kDebugMode) {
-      return 'The browser blocked the API at $baseUrl (missing CORS).\n\n'
-          'Redeploy the server folder to Vercel so the latest '
-          'index.js (with cors) goes live:\n'
-          '  cd server\n'
-          '  npx vercel --prod';
-    }
-
-    return 'We could not connect to StartBuddy right now. '
-        'Please check your connection and try again.';
-  }
-
-  void _finishSuccess(String? startupName) {
+  void _finishSuccess(
+    String? startupName,
+    int? startupId,
+    Map<String, dynamic>? startupData,
+  ) {
     _stepTimer?.cancel();
     if (!mounted) return;
     setState(() {
       _status = _Status.done;
       _stepIndex = _steps.length - 1;
       _startupName = startupName;
+      _startupId = startupId;
+      _startupData = startupData;
     });
   }
 
@@ -157,6 +144,7 @@ class _LoadingPageState extends State<LoadingPage>
       _status = _Status.loading;
       _errorMessage = null;
       _startupName = null;
+      _startupData = null;
       _stepIndex = 0;
     });
     _start();
@@ -233,7 +221,9 @@ class _LoadingPageState extends State<LoadingPage>
                             const SizedBox(height: 36),
                             const LinearProgressIndicator(
                               minHeight: 3,
-                              borderRadius: BorderRadius.all(Radius.circular(4)),
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(4),
+                              ),
                               backgroundColor: Color(0xFF1E293B),
                               color: AppTheme.accent,
                             ),
@@ -280,7 +270,12 @@ class _LoadingPageState extends State<LoadingPage>
                           if (_status == _Status.done) ...[
                             const SizedBox(height: 32),
                             ElevatedButton(
-                              onPressed: () => context.pop(),
+                              onPressed: _startupId == null
+                                  ? null
+                                  : () => context.go(
+                                      '/workspace/$_startupId',
+                                      extra: _startupData,
+                                    ),
                               child: const Text('Continue'),
                             ),
                           ],
@@ -298,18 +293,18 @@ class _LoadingPageState extends State<LoadingPage>
   }
 
   String get _title => switch (_status) {
-        _Status.loading => 'Working on your idea',
-        _Status.done =>
-          _startupName != null ? '$_startupName is ready' : 'You are all set',
-        _Status.error => 'Something went wrong',
-      };
+    _Status.loading => 'Working on your idea',
+    _Status.done =>
+      _startupName != null ? '$_startupName is ready' : 'You are all set',
+    _Status.error => 'Something went wrong',
+  };
 
   String get _subtitle => switch (_status) {
-        _Status.loading =>
-          'This usually takes a few minutes. Hang tight while we validate your startup.',
-        _Status.done => 'Your validation report has been created.',
-        _Status.error => 'Do not worry — your idea is still saved on this screen.',
-      };
+    _Status.loading =>
+      'This usually takes a few minutes. Hang tight while we validate your startup.',
+    _Status.done => 'Your validation report has been created.',
+    _Status.error => 'Do not worry — your idea is still saved on this screen.',
+  };
 
   Widget _buildIcon() {
     if (_status == _Status.loading) {
