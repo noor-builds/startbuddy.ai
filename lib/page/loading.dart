@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:startbuddy/models/startup.dart';
 import 'package:startbuddy/service/http.dart';
 import 'package:startbuddy/theme.dart';
 
@@ -270,12 +271,15 @@ class _LoadingPageState extends State<LoadingPage>
                           if (_status == _Status.done) ...[
                             const SizedBox(height: 32),
                             ElevatedButton(
-                              onPressed: _startupId == null
+                              onPressed: _startupId == null || _startupData == null
                                   ? null
-                                  : () => context.go(
-                                      '/workspace/$_startupId',
-                                      extra: _startupData,
-                                    ),
+                                  : () {
+                                    
+                                      context.go(
+                                        '/workspace/$_startupId',
+                                        extra: Startup.fromJson(_startupData!),
+                                      );
+                                    },
                               child: const Text('Continue'),
                             ),
                           ],
