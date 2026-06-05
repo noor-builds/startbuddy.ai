@@ -13,6 +13,7 @@ class Login extends StatefulWidget {
 class _LoginState extends State<Login> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -85,24 +86,40 @@ class _LoginState extends State<Login> {
                   SizedBox(
                     height: 56,
                     child: ElevatedButton(
-                      onPressed: () async {
-                        final response = await AuthService()
-                            .signInWithEmailPassword(
-                              emailController.text,
-                              passwordController.text,
-                              context: context,
-                            );
-                        if (response != null && context.mounted) {
-                          context.push('/');
-                        }
-                      },
+                      onPressed: _isLoading
+                          ? null
+                          : () async {
+                              setState(() => _isLoading = true);
+                              try {
+                                final response = await AuthService()
+                                    .signInWithEmailPassword(
+                                      emailController.text,
+                                      passwordController.text,
+                                      context: context,
+                                    );
+                                if (response != null && context.mounted) {
+                                  context.push('/');
+                                }
+                              } finally {
+                                if (mounted) setState(() => _isLoading = false);
+                              }
+                            },
                       style: ElevatedButton.styleFrom(
                         disabledBackgroundColor: Theme.of(
                           context,
                         ).colorScheme.primary,
                         disabledForegroundColor: Colors.white,
                       ),
-                      child: const Text('Log in'),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text('Log in'),
                     ),
                   ),
                   const SizedBox(height: 24),

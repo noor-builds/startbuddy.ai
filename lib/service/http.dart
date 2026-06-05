@@ -18,15 +18,15 @@ class HttpService {
       if (defaultTargetPlatform == TargetPlatform.android) {
         return 'https://startbuddy-ai-iq6n.vercel.app/p';
       }
-      return 'https://startbuddy-ai-iq6n.vercel.app/';
+      return 'https://startbuddy-ai-iq6n.vercel.app';
     }
 
-    return 'https://startbuddy-ai-iq6n.vercel.app/';
+    return 'https://startbuddy-ai-iq6n.vercel.app';
   }
 
    Future<http.Response> validate(String prompt) async {
     return http.post(
-      Uri.parse('$baseUrl/ai/validate-idea'),
+      Uri.parse('$baseUrl/ai/validate-idea').normalizePath(),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'authid': Supabase.instance.client.auth.currentUser?.id,
