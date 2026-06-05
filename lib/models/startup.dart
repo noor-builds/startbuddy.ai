@@ -15,10 +15,10 @@ class Startup {
 
   factory Startup.fromJson(Map<String, dynamic> json) {
     return Startup(
-      id: json['id'],
+      id: json['id'] ?? 0,
       authid: json['authid'],
-      startupName: json['startupName'],
-      description: json['description'],
+      startupName: json['startupName'] ?? json['startup_name'] ?? '',
+      description: json['description'] ?? json['startup_description'] ?? '',
       validationReport: json['validationReport'],
     );
   }

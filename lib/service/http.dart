@@ -16,12 +16,12 @@ class HttpService {
 
     if (kDebugMode) {
       if (defaultTargetPlatform == TargetPlatform.android) {
-        return 'https://startbuddybackend.vercel.app';
+        return 'https://startbuddy-ai-iq6n.vercel.app/p';
       }
-      return 'https://startbuddybackend.vercel.app';
+      return 'https://startbuddy-ai-iq6n.vercel.app/';
     }
 
-    return 'https://startbuddybackend.vercel.app';
+    return 'https://startbuddy-ai-iq6n.vercel.app/';
   }
 
    Future<http.Response> validate(String prompt) async {

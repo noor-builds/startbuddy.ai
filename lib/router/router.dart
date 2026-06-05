@@ -43,10 +43,11 @@ final GoRouter router = GoRouter(
           return Workspace(startup: Startup.fromJson(startupData));
         }
 
+        final nameFromQuery = state.uri.queryParameters['name'] ?? '';
         return Workspace(
           startup: Startup(
             id: startupId ?? 0,
-            startupName: '',
+            startupName: nameFromQuery.isNotEmpty ? nameFromQuery : 'Untitled Startup',
             description: '',
           ),
         );
