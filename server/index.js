@@ -5,15 +5,13 @@ import cors from 'cors';
 dotenv.config();
 
 const app = express();
-
 const corsOptions = {
-  origin: true,
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
 app.use(cors(corsOptions));
-app.options(/.*/, cors(corsOptions));
 app.use(express.json());
 
 app.get('/health', (_req, res) => {
