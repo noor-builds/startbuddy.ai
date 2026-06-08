@@ -15,12 +15,6 @@ final TextEditingController promptcontroller = TextEditingController();
 
 class _HomePageState extends State<HomePage> {
   @override
-  void dispose() {
-    promptcontroller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final horizontalPadding = size.width > 600 ? 48.0 : 24.0;
@@ -167,8 +161,9 @@ class _HomePageState extends State<HomePage> {
                                     onPressed: () {
                                       final idea = promptcontroller.text.trim();
                                       if (idea.isEmpty) {
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
                                           const SnackBar(
                                             content: Text(
                                               'Describe your startup idea first.',
@@ -256,28 +251,31 @@ class _HomeDrawer extends StatelessWidget {
                   _DrawerTile(
                     icon: Icons.rocket_launch_outlined,
                     label: 'My Startups',
-                    onTap: () => _onItemTap(context, 'My Startups'),
+                    onTap: () => context.go('/my-startups'),
                   ),
                   _DrawerTile(
                     icon: Icons.chat_bubble_outline_rounded,
                     label: 'New Chat',
                     selected: true,
-                    onTap: () => Navigator.pop(context),
+                    onTap: () {
+                      promptcontroller.clear();
+                      Navigator.pop(context);
+                    },
                   ),
                   _DrawerTile(
                     icon: Icons.feedback_outlined,
                     label: 'Feedback',
-                    onTap: () => _onItemTap(context, 'Feedback'),
+                    onTap: () => _navigateAndCloseDrawer(context, '/feedback'),
                   ),
                   _DrawerTile(
                     icon: Icons.settings_outlined,
                     label: 'Settings',
-                    onTap: () => _onItemTap(context, 'Settings'),
+                    onTap: () => _navigateAndCloseDrawer(context, '/settings'),
                   ),
                   _DrawerTile(
                     icon: Icons.help_outline_rounded,
                     label: 'Help & Support',
-                    onTap: () => _onItemTap(context, 'Help & Support'),
+                    onTap: () => _navigateAndCloseDrawer(context, '/help-support'),
                   ),
                 ],
               ),
@@ -298,15 +296,9 @@ class _HomeDrawer extends StatelessWidget {
     );
   }
 
-  void _onItemTap(BuildContext context, String label) {
+  void _navigateAndCloseDrawer(BuildContext context, String route) {
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$label — coming soon'),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    context.push(route);
   }
 }
 

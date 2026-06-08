@@ -40,15 +40,32 @@ class DbService {
         .from('users')
         .upsert({
           'auth_id': user.id,
-          'startup_name': startupName.trim(),
-          'startup_description': startupDescription.trim(),
+          'startupName': startupName.trim(),
+          'description': startupDescription.trim(),
         }, onConflict: 'auth_id')
         .select()
         .single();
   }
 
 
+  
 
+  Future<Map<String, dynamic>> fetchStartupById(int id) async {
+    final user = _supabase.auth.currentUser;
+
+    if (user == null) {
+      throw const AuthException('You must be signed in to view a startup.');
+    }
+
+    final response = await _supabase
+        .from('startup')
+        .select('id, created_at, "startupName", description, validation_report')
+        .eq('id', id)
+        .eq('authid', user.id)
+        .single();
+
+    return Map<String, dynamic>.from(response as Map);
+  }
 
   Future<List<Map<String, dynamic>>> fetchUserStartups() async {
     final user = _supabase.auth.currentUser;
@@ -59,7 +76,7 @@ class DbService {
 
     final response = await _supabase
         .from('startup')
-        .select('id, created_at, "startup name", description, validation_report')
+        .select('id, created_at, "startupName", description, validation_report')
         .eq('authid', user.id)
         .order('created_at', ascending: false);
 
