@@ -193,9 +193,10 @@ async function researchStartupWithWebSearch(
 
   const searchModel = createSearchModel({ temperature: 0.3 });
 
-  const response = await searchModel.invoke([
-    new SystemMessage(
-      `You are a startup analyst. Use Google Search sparingly (2-3 searches max) to gather current market data.
+  try {
+    const response = await searchModel.invoke([
+      new SystemMessage(
+        `You are a startup analyst. Use Google Search sparingly (2-3 searches max) to gather current market data.
 Write a concise factual report (600-900 words) with these sections:
 1. Executive Summary
 2. Market Size and Trends (include statistics and dates where possible)
@@ -205,31 +206,50 @@ Write a concise factual report (600-900 words) with these sections:
 6. Key Statistics (bullet list)
 
 Cite sources inline where possible. If data is uncertain, say so. Do not fabricate numbers.`
-    ),
-    new HumanMessage(
-      `Research this startup and its market:\n\nName: ${startupName}\nDescription: ${startupDescription}`
-    ),
-  ]);
+      ),
+      new HumanMessage(
+        `Research this startup and its market:\n\nName: ${startupName}\nDescription: ${startupDescription}`
+      ),
+    ]);
 
-  const reportText =
-    typeof response.text === 'string'
-      ? response.text.trim()
-      : String(response.content ?? '').trim();
+    const reportText =
+      typeof response.text === 'string'
+        ? response.text.trim()
+        : String(response.content ?? '').trim();
 
-  if (!reportText) {
-    throw new ValidatorError('AI returned an empty research report', {
-      code: 'RESEARCH_FAILED',
-      statusCode: 502,
-    });
+    if (!reportText) {
+      throw new ValidatorError('AI returned an empty research report', {
+        code: 'RESEARCH_FAILED',
+        statusCode: 502,
+      });
+    }
+
+    const groundingMetadata =
+      response.response_metadata?.groundingMetadata ??
+      response.additional_kwargs?.groundingMetadata ??
+      null;
+
+    logStep('Market research: web search complete.');
+    return { reportText, groundingMetadata, usedWebSearch: true };
+  } catch (error) {
+    const isAuthError =
+      error?.message?.includes('authentication') ||
+      error?.message?.includes('authentication credential') ||
+      error?.message?.includes('OAuth');
+
+    if (isAuthError) {
+      logStep(
+        'Market research: Google Search authentication failed, falling back to offline analysis.'
+      );
+      throw new ValidatorError(`Google Search unavailable: ${error.message}`, {
+        code: 'RESEARCH_AUTH_FAILED',
+        statusCode: 401,
+        cause: error,
+      });
+    }
+
+    throw error;
   }
-
-  const groundingMetadata =
-    response.response_metadata?.groundingMetadata ??
-    response.additional_kwargs?.groundingMetadata ??
-    null;
-
-  logStep('Market research: web search complete.');
-  return { reportText, groundingMetadata, usedWebSearch: true };
 }
 
 async function researchStartupWithoutWebSearch(startupName, startupDescription) {
@@ -292,8 +312,18 @@ async function researchStartupMarket(startupName, startupDescription) {
     );
   } catch (error) {
     const isTimeout = error instanceof ValidatorError && error.code === 'TIMEOUT';
+    const isAuthError = error instanceof ValidatorError && error.code === 'RESEARCH_AUTH_FAILED';
 
-    if (!isTimeout) throw error;
+    if (!isTimeout && !isAuthError) throw error;
+
+    if (isAuthError) {
+      logStep('Market research: falling back to offline analysis (auth unavailable).');
+      return withTimeout(
+        researchStartupWithoutWebSearch(startupName, startupDescription),
+        REQUEST_TIMEOUT_MS,
+        'Offline market research'
+      );
+    }
 
     logStep('Market research: timed out, retrying web search once...');
 
@@ -306,8 +336,10 @@ async function researchStartupMarket(startupName, startupDescription) {
     } catch (retryError) {
       const retryTimedOut =
         retryError instanceof ValidatorError && retryError.code === 'TIMEOUT';
+      const retryAuthFailed =
+        retryError instanceof ValidatorError && retryError.code === 'RESEARCH_AUTH_FAILED';
 
-      if (!retryTimedOut) throw retryError;
+      if (!retryTimedOut && !retryAuthFailed) throw retryError;
 
       logStep('Market research: web search unavailable, falling back to offline analysis.');
       return withTimeout(
@@ -421,11 +453,11 @@ async function saveStartupRecord({
     .from('startup')
     .insert({
       authid: authId,
-      'startuName': startupName,
+      startupName: startupName,
       description: startupDescription,
       validation_report: validationReportUrl,
     })
-    .select('id, created_at, authid, "startupName", description, validation_report')
+    .select('id, created_at, authid, startupName, description, validation_report')
     .single();
 
   if (error) {
@@ -440,7 +472,7 @@ async function saveStartupRecord({
     id: data.id,
     createdAt: data.created_at,
     authId: data.authid,
-    startupName: data['startupName'],
+    startupName: data.startupName,
     description: data.description,
     validationReport: data.validation_report,
   };

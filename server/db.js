@@ -23,12 +23,19 @@ const clientOptions = {
 
 const supabase = createClient(supabaseUrl, supabaseKey, clientOptions);
 
+if (!supabaseServiceRoleKey?.trim()) {
+  throw new Error(
+    'SUPABASE_SERVICE_ROLE_KEY must be configured in server/.env for admin operations.\n' +
+      'Use a Supabase service role key, not the public anon key.'
+  );
+}
+
 const supabaseAdmin = createClient(
   supabaseUrl,
-  supabaseServiceRoleKey?.trim() || supabaseKey,
+  supabaseServiceRoleKey.trim(),
   clientOptions
 );
 
-const hasServiceRoleKey = Boolean(supabaseServiceRoleKey?.trim());
+const hasServiceRoleKey = true;
 
 export { supabase, supabaseAdmin, hasServiceRoleKey };
