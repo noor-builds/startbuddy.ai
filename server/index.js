@@ -5,13 +5,26 @@ import cors from 'cors';
 dotenv.config();
 
 const app = express();
-const corsOptions = {
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-};
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
+  // Dynamically reflect the incoming origin back to the browser
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  
+  // Crucial headers to pass preflight checks
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type', 'Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
 
-app.use(cors(corsOptions));
+  // Handle the browser's automatic OPTIONS preflight request immediately
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+
+  next();
+});
 app.use(express.json());
 
 app.get('/health', (_req, res) => {

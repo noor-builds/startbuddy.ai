@@ -421,11 +421,11 @@ async function saveStartupRecord({
     .from('startup')
     .insert({
       authid: authId,
-      'startup name': startupName,
+      'startuName': startupName,
       description: startupDescription,
       validation_report: validationReportUrl,
     })
-    .select('id, created_at, authid, "startup name", description, validation_report')
+    .select('id, created_at, authid, "startupName", description, validation_report')
     .single();
 
   if (error) {
@@ -440,7 +440,7 @@ async function saveStartupRecord({
     id: data.id,
     createdAt: data.created_at,
     authId: data.authid,
-    startupName: data['startup name'],
+    startupName: data['startupName'],
     description: data.description,
     validationReport: data.validation_report,
   };
