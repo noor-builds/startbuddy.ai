@@ -7,18 +7,16 @@ dotenv.config();
 const app = express();
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  
-  // Dynamically reflect the incoming origin back to the browser
+
   if (origin) {
     res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
   }
-  
-  // Crucial headers to pass preflight checks
+
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
 
-  // Handle the browser's automatic OPTIONS preflight request immediately
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
   }
