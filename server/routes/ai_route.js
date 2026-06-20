@@ -9,7 +9,7 @@ import { generateDocument } from '../middleware/ai/document.js';
 const router = Router();
 
 // Zod schemas for validation
-const AuthIdSchema = z.string().uuid('authId must be a valid UUID');
+const AuthIdSchema = z.string().uuid({ message: 'authId must be a valid UUID' });
 const StartupIdSchema = z.union([z.number(), z.string().transform(val => Number(val))]).pipe(z.number().positive());
 
 const ValidateIdeaBodySchema = z
@@ -32,10 +32,12 @@ const GenerateRoadmapSchema = z.object({
 }).strict();
 
 const ChatSchema = z.object({
-  authId: AuthIdSchema,
+  authId: z.string().uuid({ message: 'authId must be a valid UUID' }).optional(),
   startupId: StartupIdSchema,
-  chatId: z.string().uuid().optional(),
+  chatId: z.string().uuid({ message: 'chatId must be a valid UUID' }).nullable().optional(),
   message: z.string().min(1),
+  // Support legacy authid field
+  authid: z.string().uuid({ message: 'authid must be a valid UUID' }).optional(),
 }).strict();
 
 const GenerateDocumentSchema = z.object({
@@ -161,29 +163,41 @@ router.post('/generate-roadmap', async (req, res) => {
   }
 });
 
-// 4. Co-Founder Chat route
-router.post('/chat', async (req, res) => {
-  try {
-    const parsed = ChatSchema.safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json({
-        ok: false,
-        error: {
-          code: 'INVALID_INPUT',
-          message: 'Invalid request body',
-          details: parsed.error.flatten(),
-        },
-      });
+  // 4. Co-Founder Chat route
+  router.post('/chat', async (req, res) => {
+    try {
+      const parsed = ChatSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          ok: false,
+          error: {
+            code: 'INVALID_INPUT',
+            message: 'Invalid request body',
+            details: parsed.error.flatten(),
+          },
+        });
+      }
+
+      const { authId, startupId, chatId, message, authid } = parsed.data;
+      const resolvedAuthId = authId ?? authid;
+
+      if (!resolvedAuthId) {
+        return res.status(400).json({
+          ok: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Authentication required',
+          },
+        });
+      }
+
+      const result = await handleChat({ authId: resolvedAuthId, startupId, chatId, message });
+
+      return res.status(200).json({ ok: true, data: result });
+    } catch (error) {
+      return handleError(res, error, 'Failed to process chat message');
     }
-
-    const { authId, startupId, chatId, message } = parsed.data;
-    const result = await handleChat({ authId, startupId, chatId, message });
-
-    return res.status(200).json({ ok: true, data: result });
-  } catch (error) {
-    return handleError(res, error, 'Failed to process chat message');
-  }
-});
+  });
 
 // 5. Document generation route
 router.post('/generate-document', async (req, res) => {

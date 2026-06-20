@@ -23,19 +23,20 @@ const clientOptions = {
 
 const supabase = createClient(supabaseUrl, supabaseKey, clientOptions);
 
-if (!supabaseServiceRoleKey?.trim()) {
-  throw new Error(
-    'SUPABASE_SERVICE_ROLE_KEY must be configured in server/.env for admin operations.\n' +
-      'Use a Supabase service role key, not the public anon key.'
-  );
+const hasServiceRoleKey = Boolean(supabaseServiceRoleKey?.trim());
+
+const supabaseAdmin = hasServiceRoleKey
+  ? createClient(supabaseUrl, supabaseServiceRoleKey.trim(), clientOptions)
+  : null;
+
+function requireAdmin() {
+  if (!supabaseAdmin) {
+    throw new Error(
+      'SUPABASE_SERVICE_ROLE_KEY is required for this operation. ' +
+      'Set it in server/.env or Vercel project environment variables.'
+    );
+  }
+  return supabaseAdmin;
 }
 
-const supabaseAdmin = createClient(
-  supabaseUrl,
-  supabaseServiceRoleKey.trim(),
-  clientOptions
-);
-
-const hasServiceRoleKey = true;
-
-export { supabase, supabaseAdmin, hasServiceRoleKey };
+export { supabase, supabaseAdmin, hasServiceRoleKey, requireAdmin, supabaseUrl };

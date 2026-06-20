@@ -37,12 +37,12 @@ class DbService {
     }
 
     return _supabase
-        .from('users')
-        .upsert({
-          'auth_id': user.id,
+        .from('startup')
+        .insert({
+          'authid': user.id,
           'startupName': startupName.trim(),
           'description': startupDescription.trim(),
-        }, onConflict: 'auth_id')
+        })
         .select()
         .single();
   }

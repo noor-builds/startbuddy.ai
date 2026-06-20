@@ -19,7 +19,7 @@ class Startup {
       authid: json['authid'],
       startupName: json['startupName'] ?? json['startup_name'] ?? '',
       description: json['description'] ?? json['startup_description'] ?? '',
-      validationReport: json['validationReport'],
+      validationReport: json['validationReport'] ?? json['validation_report'],
     );
   }
 

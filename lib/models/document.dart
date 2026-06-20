@@ -26,7 +26,7 @@ class StartupDocument {
           ? DateTime.parse(json['created_at']) 
           : DateTime.now(),
       authid: json['authid'] ?? '',
-      startupId: json['startup_id'] ?? json['startup_id'] ?? 0,
+      startupId: json['startup_id'] ?? 0,
       title: json['title'] ?? '',
       type: json['type'] ?? '',
       content: json['content'],

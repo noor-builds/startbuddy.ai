@@ -8,9 +8,19 @@ import 'package:flutter_web_plugins/url_strategy.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   usePathUrlStrategy();
+
+  const supabaseUrl = String.fromEnvironment(
+    'SUPABASE_URL',
+    defaultValue: 'https://ypqgdftexhiwocjvdorz.supabase.co',
+  );
+  const supabaseAnonKey = String.fromEnvironment(
+    'SUPABASE_ANON_KEY',
+    defaultValue: 'sb_publishable_tXogFpvY7Vd4V_LxMrsyJQ_IgSVATA2',
+  );
+
   await Supabase.initialize(
-    anonKey: 'sb_publishable_tXogFpvY7Vd4V_LxMrsyJQ_IgSVATA2',
-    url: 'https://ypqgdftexhiwocjvdorz.supabase.co',
+    anonKey: supabaseAnonKey,
+    url: supabaseUrl,
   );
   runApp(const MyApp());
 }
