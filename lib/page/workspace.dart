@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:startbuddy/models/startup.dart';
 import 'package:startbuddy/service/db/db_service.dart';
@@ -415,7 +416,7 @@ class WorkspaceDrawer extends StatelessWidget {
               style: GoogleFonts.roboto(color: Colors.white70, fontSize: 14),
             ),
             onTap: () {
-              Navigator.of(context).pop(); // Go back to startups screen
+              context.go('/startups'); // Go back to startups screen
             },
           ),
         ],
