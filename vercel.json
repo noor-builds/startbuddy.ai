@@ -1,5 +1,5 @@
 
 {
-  "buildCommand": "flutter build web",
+  "buildCommand": "./flutter/bin/flutter build web",
   "outputDirectory": "build/web"
 }
