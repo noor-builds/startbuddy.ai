@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:startbuddy/models/startup.dart';
@@ -7,6 +8,7 @@ import 'package:startbuddy/models/task.dart';
 import 'package:startbuddy/service/db/db_service.dart';
 import 'package:startbuddy/service/http.dart';
 import 'package:startbuddy/theme.dart';
+import 'package:startbuddy/widgets/markdown_text.dart';
 
 class DashboardView extends StatefulWidget {
   final Startup startup;
@@ -29,6 +31,10 @@ class _DashboardViewState extends State<DashboardView> {
   List<StartupDocument> _documents = [];
   StartupDocument? _blueprint;
 
+  double _clampDouble(double value, double min, double max) {
+    return math.min(max, math.max(min, value));
+  }
+
   @override
   void initState() {
     super.initState();
@@ -46,7 +52,7 @@ class _DashboardViewState extends State<DashboardView> {
       setState(() {
         _tasks = tasksData.map((t) => StartupTask.fromJson(t)).toList();
         _documents = docsData.map((d) => StartupDocument.fromJson(d)).toList();
-        
+
         // Find blueprint if exists
         final bpIndex = _documents.indexWhere((doc) => doc.type == 'blueprint');
         if (bpIndex != -1) {
@@ -77,15 +83,21 @@ class _DashboardViewState extends State<DashboardView> {
       final response = await _http.generateBlueprint(widget.startup.id);
       final body = jsonDecode(response.body);
 
-      if (response.statusCode >= 200 && response.statusCode < 300 && body['ok'] == true) {
+      if (response.statusCode >= 200 &&
+          response.statusCode < 300 &&
+          body['ok'] == true) {
         await _loadDashboardData();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Startup Blueprint generated successfully!')),
+            const SnackBar(
+              content: Text('Startup Blueprint generated successfully!'),
+            ),
           );
         }
       } else {
-        throw Exception(body['error']?['message'] ?? 'Failed to generate blueprint');
+        throw Exception(
+          body['error']?['message'] ?? 'Failed to generate blueprint',
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -120,7 +132,7 @@ class _DashboardViewState extends State<DashboardView> {
             ElevatedButton(
               onPressed: _loadDashboardData,
               child: const Text('Retry'),
-            )
+            ),
           ],
         ),
       );
@@ -130,203 +142,262 @@ class _DashboardViewState extends State<DashboardView> {
     final completedTasks = _tasks.where((t) => t.status == 'done').length;
     final completionRate = totalTasks > 0 ? (completedTasks / totalTasks) : 0.0;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header block
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final horizontalPadding = _clampDouble(
+          constraints.maxWidth * 0.05,
+          14,
+          24,
+        );
+        final cardColumns = constraints.maxWidth >= 980
+            ? 3
+            : constraints.maxWidth >= 560
+            ? 2
+            : 1;
+        final titleSize = _clampDouble(constraints.maxWidth * 0.07, 22, 28);
+        final gridAspectRatio = cardColumns == 3
+            ? 2.25
+            : cardColumns == 2
+            ? 1.65
+            : 2.35;
+
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(horizontalPadding),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.startup.startupName,
-                      style: GoogleFonts.dmSans(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                        letterSpacing: -0.8,
+              // Header block
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.startup.startupName,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.dmSans(
+                      fontSize: titleSize,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppTheme.primary.withOpacity(0.3),
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primary.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
-                      ),
-                      child: Text(
-                        'Stage: ${totalTasks > 0 ? _tasks.first.stage.toUpperCase() : "IDEA"}',
-                        style: GoogleFonts.roboto(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.accent,
-                        ),
+                    child: Text(
+                      'Stage: ${totalTasks > 0 ? _tasks.first.stage.toUpperCase() : "IDEA"}',
+                      style: GoogleFonts.roboto(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.accent,
                       ),
                     ),
-                  ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // Overview cards grid
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: cardColumns,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                childAspectRatio: gridAspectRatio,
+                children: [
+                  // Roadmap progress card
+                  _buildMetricCard(
+                    title: 'Roadmap Execution',
+                    value: '${(completionRate * 100).toInt()}%',
+                    subtitle: '$completedTasks of $totalTasks tasks complete',
+                    icon: Icons.donut_large_rounded,
+                    iconColor: AppTheme.accent,
+                    progress: completionRate,
+                  ),
+                  // Documents count card
+                  _buildMetricCard(
+                    title: 'Business Docs',
+                    value: '${_documents.length}',
+                    subtitle: 'Generated formats: PDF & MD',
+                    icon: Icons.article_outlined,
+                    iconColor: AppTheme.primary,
+                  ),
+                  // Idea validator score card
+                  _buildMetricCard(
+                    title: 'Idea Status',
+                    value: widget.startup.validationReport != null
+                        ? 'VALIDATED'
+                        : 'STAGE 1',
+                    subtitle: widget.startup.validationReport != null
+                        ? 'Market report ready'
+                        : 'Idea stage',
+                    icon: Icons.offline_bolt_outlined,
+                    iconColor: AppTheme.success,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
+
+              // Startup Blueprint area
+              Text(
+                'Startup Blueprint',
+                style: GoogleFonts.dmSans(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 24),
-
-          // Overview cards grid
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: MediaQuery.of(context).size.width > 600 ? 3 : 1,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 2.2,
-            children: [
-              // Roadmap progress card
-              _buildMetricCard(
-                title: 'Roadmap Execution',
-                value: '${(completionRate * 100).toInt()}%',
-                subtitle: '$completedTasks of $totalTasks tasks complete',
-                icon: Icons.donut_large_rounded,
-                iconColor: AppTheme.accent,
-                progress: completionRate,
-              ),
-              // Documents count card
-              _buildMetricCard(
-                title: 'Business Docs',
-                value: '${_documents.length}',
-                subtitle: 'Generated formats: PDF & MD',
-                icon: Icons.article_outlined,
-                iconColor: AppTheme.primary,
-              ),
-              // Idea validator score card
-              _buildMetricCard(
-                title: 'Idea Status',
-                value: widget.startup.validationReport != null ? 'VALIDATED' : 'STAGE 1',
-                subtitle: widget.startup.validationReport != null ? 'Market report ready' : 'Idea stage',
-                icon: Icons.offline_bolt_outlined,
-                iconColor: AppTheme.success,
-              ),
-            ],
-          ),
-          const SizedBox(height: 32),
-
-          // Startup Blueprint area
-          Text(
-            'Startup Blueprint',
-            style: GoogleFonts.dmSans(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 12),
-          _blueprint == null
-              ? Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: AppTheme.darkCard,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white.withOpacity(0.05)),
-                  ),
-                  child: Column(
-                    children: [
-                      const Icon(Icons.architecture_rounded, size: 48, color: AppTheme.textSecondaryDark),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Generate Startup Blueprint',
-                        style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+              const SizedBox(height: 12),
+              _blueprint == null
+                  ? Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: AppTheme.darkCard,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.05),
+                        ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Let our AI co-founder formulate your Problem Statement, Value Proposition, Target Audience, Revenue Model, and Distribution channels.',
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.roboto(fontSize: 13, color: AppTheme.textSecondaryDark),
-                      ),
-                      const SizedBox(height: 20),
-                      ElevatedButton(
-                        onPressed: _generatingBlueprint ? null : _generateBlueprint,
-                        child: _generatingBlueprint
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                              )
-                            : const Text('Generate Blueprint'),
-                      ),
-                    ],
-                  ),
-                )
-              : Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: AppTheme.darkCard,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white.withOpacity(0.05)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      child: Column(
                         children: [
-                          Text(
-                            'Corporate Core & Strategy',
-                            style: GoogleFonts.dmSans(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                          const Icon(
+                            Icons.architecture_rounded,
+                            size: 42,
+                            color: AppTheme.textSecondaryDark,
                           ),
-                          const Icon(Icons.verified_user_rounded, color: AppTheme.success, size: 20),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Generate Startup Blueprint',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.dmSans(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Let our AI co-founder formulate your Problem Statement, Value Proposition, Target Audience, Revenue Model, and Distribution channels.',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.roboto(
+                              fontSize: 13,
+                              color: AppTheme.textSecondaryDark,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          ElevatedButton(
+                            onPressed: _generatingBlueprint
+                                ? null
+                                : _generateBlueprint,
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 18,
+                                vertical: 12,
+                              ),
+                            ),
+                            child: _generatingBlueprint
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Text('Generate Blueprint'),
+                          ),
                         ],
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        _blueprint!.content ?? '',
-                        style: GoogleFonts.roboto(
-                          fontSize: 14.5,
-                          color: Colors.white.withOpacity(0.85),
-                          height: 1.5,
+                    )
+                  : Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: AppTheme.darkCard,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.05),
                         ),
-                        maxLines: 12,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                    ],
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'Corporate Core & Strategy',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.dmSans(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              const Icon(
+                                Icons.verified_user_rounded,
+                                color: AppTheme.success,
+                                size: 20,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          MarkdownText(
+                            text: _blueprint!.content ?? '',
+                            maxLines: 12,
+                          ),
+                        ],
+                      ),
+                    ),
+              const SizedBox(height: 32),
+
+              // Startup Description
+              Text(
+                'Startup Description',
+                style: GoogleFonts.dmSans(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppTheme.darkCard,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white.withOpacity(0.05)),
+                ),
+                child: Text(
+                  widget.startup.description,
+                  softWrap: true,
+                  style: GoogleFonts.roboto(
+                    fontSize: 14.5,
+                    color: Colors.white.withOpacity(0.85),
+                    height: 1.5,
                   ),
                 ),
-          const SizedBox(height: 32),
-
-          // Startup Description
-          Text(
-            'Startup Description',
-            style: GoogleFonts.dmSans(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: AppTheme.darkCard,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.05)),
-            ),
-            child: Text(
-              widget.startup.description,
-              style: GoogleFonts.roboto(
-                fontSize: 14.5,
-                color: Colors.white.withOpacity(0.85),
-                height: 1.5,
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -352,20 +423,27 @@ class _DashboardViewState extends State<DashboardView> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                title,
-                style: GoogleFonts.dmSans(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.textSecondaryDark,
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.dmSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textSecondaryDark,
+                  ),
                 ),
               ),
+              const SizedBox(width: 10),
               Icon(icon, color: iconColor, size: 22),
             ],
           ),
           const SizedBox(height: 8),
           Text(
             value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: GoogleFonts.dmSans(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -375,6 +453,8 @@ class _DashboardViewState extends State<DashboardView> {
           const SizedBox(height: 4),
           Text(
             subtitle,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: GoogleFonts.roboto(
               fontSize: 12,
               color: AppTheme.textSecondaryDark,
@@ -389,7 +469,7 @@ class _DashboardViewState extends State<DashboardView> {
               minHeight: 4,
               borderRadius: BorderRadius.circular(2),
             ),
-          ]
+          ],
         ],
       ),
     );

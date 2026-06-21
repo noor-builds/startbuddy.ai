@@ -18,6 +18,7 @@ class HttpService {
       'prompt': prompt,
     };
     
+
     // Only add authId if it's not null
     final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId != null) {

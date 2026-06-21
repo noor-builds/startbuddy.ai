@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:startbuddy/models/startup.dart';
@@ -24,7 +26,7 @@ class _WorkspaceState extends State<Workspace> {
   bool _loading = true;
   String? _error;
   bool _drawerOpen = false;
-  
+
   // Active Navigation Index
   // 0: Dashboard, 1: AI Chat, 2: Roadmap/Tasks, 3: Documents
   int _activeViewIndex = 0;
@@ -84,19 +86,19 @@ class _WorkspaceState extends State<Workspace> {
                 child: CircularProgressIndicator(color: Colors.white70),
               )
             : _error != null
-                ? Center(
-                    child: Text(
-                      _error!,
-                      style: const TextStyle(color: Colors.redAccent),
-                    ),
-                  )
-                : WorkspaceBody(
-                    startup: _startup!,
-                    activeViewIndex: _activeViewIndex,
-                    drawerOpen: _drawerOpen,
-                    onToggleDrawer: _toggleDrawer,
-                    onSelectView: _setViewIndex,
-                  ),
+            ? Center(
+                child: Text(
+                  _error!,
+                  style: const TextStyle(color: Colors.redAccent),
+                ),
+              )
+            : WorkspaceBody(
+                startup: _startup!,
+                activeViewIndex: _activeViewIndex,
+                drawerOpen: _drawerOpen,
+                onToggleDrawer: _toggleDrawer,
+                onSelectView: _setViewIndex,
+              ),
       ),
     );
   }
@@ -150,12 +152,21 @@ class WorkspaceBody extends StatelessWidget {
   final VoidCallback onToggleDrawer;
   final Function(int) onSelectView;
 
+  double _clampDouble(double value, double min, double max) {
+    return math.min(max, math.max(min, value));
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: LayoutBuilder(
         builder: (context, constraints) {
           final isMobile = constraints.maxWidth < 720;
+          final mobileTitleSize = _clampDouble(
+            constraints.maxWidth * 0.045,
+            16,
+            20,
+          );
 
           return isMobile
               ? Stack(
@@ -164,19 +175,42 @@ class WorkspaceBody extends StatelessWidget {
                       children: [
                         // Custom Mobile Top Bar
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: _clampDouble(
+                              constraints.maxWidth * 0.05,
+                              12,
+                              20,
+                            ),
+                            vertical: _clampDouble(
+                              constraints.maxHeight * 0.02,
+                              8,
+                              16,
+                            ),
+                          ),
                           child: Row(
                             children: [
                               IconButton(
-                                icon: const Icon(Icons.menu_rounded, color: Colors.white, size: 24),
+                                icon: const Icon(
+                                  Icons.menu_rounded,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
                                 onPressed: onToggleDrawer,
                               ),
-                              const SizedBox(width: 8),
+                              SizedBox(
+                                width: _clampDouble(
+                                  constraints.maxWidth * 0.03,
+                                  6,
+                                  12,
+                                ),
+                              ),
                               Expanded(
                                 child: Text(
                                   _viewTitle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: GoogleFonts.dmSans(
-                                    fontSize: 18,
+                                    fontSize: mobileTitleSize,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.white,
                                   ),
@@ -207,6 +241,7 @@ class WorkspaceBody extends StatelessWidget {
                           activeViewIndex: activeViewIndex,
                           onSelectView: onSelectView,
                           isMobile: true,
+                          maxWidth: constraints.maxWidth,
                         ),
                       ),
                     ],
@@ -219,14 +254,19 @@ class WorkspaceBody extends StatelessWidget {
                       activeViewIndex: activeViewIndex,
                       onSelectView: onSelectView,
                       isMobile: false,
+                      maxWidth: constraints.maxWidth,
                     ),
                     Expanded(
                       child: Container(
-                        margin: const EdgeInsets.all(20),
+                        margin: EdgeInsets.all(
+                          _clampDouble(constraints.maxWidth * 0.02, 12, 20),
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFF030914).withOpacity(0.5),
                           borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: Colors.white.withOpacity(0.04)),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.04),
+                          ),
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(24),
@@ -268,16 +308,20 @@ class WorkspaceDrawer extends StatelessWidget {
     required this.activeViewIndex,
     required this.onSelectView,
     required this.isMobile,
+    required this.maxWidth,
   });
 
   final int activeViewIndex;
   final Function(int) onSelectView;
   final bool isMobile;
+  final double maxWidth;
 
   @override
   Widget build(BuildContext context) {
+    final drawerWidth = isMobile ? math.min(280.0, maxWidth * 0.82) : 280.0;
+
     return Container(
-      width: 280,
+      width: drawerWidth,
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
       decoration: BoxDecoration(
         color: const Color(0xFF081121),
@@ -287,67 +331,85 @@ class WorkspaceDrawer extends StatelessWidget {
                 topRight: Radius.circular(28),
                 bottomRight: Radius.circular(28),
               ),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.06),
-          width: 1,
-        ),
+        border: Border.all(color: Colors.white.withOpacity(0.06), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(Icons.rocket_launch_rounded, color: AppTheme.accent, size: 24),
-              const SizedBox(width: 10),
-              Text(
-                'StartBuddy',
-                style: GoogleFonts.dmSans(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                  letterSpacing: -0.5,
-                ),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.rocket_launch_rounded,
+                        color: AppTheme.accent,
+                        size: 28,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'StartBuddy',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.dmSans(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Founder\'s Operating System',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.roboto(
+                      fontSize: 12,
+                      color: Colors.white.withOpacity(0.5),
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  _DrawerItem(
+                    label: 'Dashboard',
+                    icon: Icons.dashboard_customize_outlined,
+                    selected: activeViewIndex == 0,
+                    onTap: () => onSelectView(0),
+                  ),
+                  _DrawerItem(
+                    label: 'AI Co-Founder Chat',
+                    icon: Icons.psychology_outlined,
+                    selected: activeViewIndex == 1,
+                    onTap: () => onSelectView(1),
+                  ),
+                  _DrawerItem(
+                    label: 'Execution Roadmap',
+                    icon: Icons.checklist_rtl_rounded,
+                    selected: activeViewIndex == 2,
+                    onTap: () => onSelectView(2),
+                  ),
+                  _DrawerItem(
+                    label: 'Business Vault',
+                    icon: Icons.folder_shared_outlined,
+                    selected: activeViewIndex == 3,
+                    onTap: () => onSelectView(3),
+                  ),
+                ],
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Founder\'s Operating System',
-            style: GoogleFonts.roboto(
-              fontSize: 12,
-              color: Colors.white.withOpacity(0.5),
             ),
           ),
-          const SizedBox(height: 28),
-          _DrawerItem(
-            label: 'Dashboard',
-            icon: Icons.dashboard_customize_outlined,
-            selected: activeViewIndex == 0,
-            onTap: () => onSelectView(0),
-          ),
-          _DrawerItem(
-            label: 'AI Co-Founder Chat',
-            icon: Icons.psychology_outlined,
-            selected: activeViewIndex == 1,
-            onTap: () => onSelectView(1),
-          ),
-          _DrawerItem(
-            label: 'Execution Roadmap',
-            icon: Icons.checklist_rtl_rounded,
-            selected: activeViewIndex == 2,
-            onTap: () => onSelectView(2),
-          ),
-          _DrawerItem(
-            label: 'Business Vault',
-            icon: Icons.folder_shared_outlined,
-            selected: activeViewIndex == 3,
-            onTap: () => onSelectView(3),
-          ),
-          const Spacer(),
-          const Divider(color: Colors.white12),
+          Divider(color: Colors.white12, height: 24),
           ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.exit_to_app_rounded, color: AppTheme.error, size: 20),
+            leading: const Icon(
+              Icons.exit_to_app_rounded,
+              color: AppTheme.error,
+              size: 20,
+            ),
             title: Text(
               'Back to Startups',
               style: GoogleFonts.roboto(color: Colors.white70, fontSize: 14),
@@ -383,21 +445,27 @@ class _DrawerItem extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: selected ? AppTheme.primary.withOpacity(0.12) : Colors.transparent,
+        color: selected
+            ? AppTheme.primary.withOpacity(0.12)
+            : Colors.transparent,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: selected ? AppTheme.primary.withOpacity(0.25) : Colors.transparent,
+          color: selected
+              ? AppTheme.primary.withOpacity(0.25)
+              : Colors.transparent,
         ),
       ),
       child: ListTile(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         leading: Icon(
-          icon, 
-          color: selected ? activeColor : inactiveColor, 
-          size: 20
+          icon,
+          color: selected ? activeColor : inactiveColor,
+          size: 20,
         ),
         title: Text(
           label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: GoogleFonts.roboto(
             fontSize: 14,
             fontWeight: selected ? FontWeight.bold : FontWeight.w400,

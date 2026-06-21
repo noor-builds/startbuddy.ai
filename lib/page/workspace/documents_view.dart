@@ -6,6 +6,7 @@ import 'package:startbuddy/models/document.dart';
 import 'package:startbuddy/service/db/db_service.dart';
 import 'package:startbuddy/service/http.dart';
 import 'package:startbuddy/theme.dart';
+import 'package:startbuddy/widgets/markdown_text.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class DocumentsView extends StatefulWidget {
@@ -44,7 +45,7 @@ class _DocumentsViewState extends State<DocumentsView> {
     try {
       setState(() => _loading = true);
       final data = await _db.fetchDocumentsForStartup(widget.startup.id);
-      
+
       if (!mounted) return;
       setState(() {
         _documents = data.map((d) => StartupDocument.fromJson(d)).toList();
@@ -54,7 +55,10 @@ class _DocumentsViewState extends State<DocumentsView> {
       if (!mounted) return;
       setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load documents: $e'), backgroundColor: AppTheme.error),
+        SnackBar(
+          content: Text('Failed to load documents: $e'),
+          backgroundColor: AppTheme.error,
+        ),
       );
     }
   }
@@ -67,7 +71,9 @@ class _DocumentsViewState extends State<DocumentsView> {
       final response = await _http.generateDocument(widget.startup.id, type);
       final body = jsonDecode(response.body);
 
-      if (response.statusCode >= 200 && response.statusCode < 300 && body['ok'] == true) {
+      if (response.statusCode >= 200 &&
+          response.statusCode < 300 &&
+          body['ok'] == true) {
         await _loadDocuments();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -75,12 +81,17 @@ class _DocumentsViewState extends State<DocumentsView> {
           );
         }
       } else {
-        throw Exception(body['error']?['message'] ?? 'Failed to generate document');
+        throw Exception(
+          body['error']?['message'] ?? 'Failed to generate document',
+        );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Generation error: $e'), backgroundColor: AppTheme.error),
+          SnackBar(
+            content: Text('Generation error: $e'),
+            backgroundColor: AppTheme.error,
+          ),
         );
       }
     } finally {
@@ -101,7 +112,10 @@ class _DocumentsViewState extends State<DocumentsView> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Cannot open PDF link: $e. Copying to clipboard.'), backgroundColor: AppTheme.warning),
+          SnackBar(
+            content: Text('Cannot open PDF link: $e. Copying to clipboard.'),
+            backgroundColor: AppTheme.warning,
+          ),
         );
       }
     }
@@ -136,7 +150,10 @@ class _DocumentsViewState extends State<DocumentsView> {
                 ),
                 // Header
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 8,
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -153,12 +170,21 @@ class _DocumentsViewState extends State<DocumentsView> {
                       if (doc.fileUrl != null)
                         ElevatedButton.icon(
                           onPressed: () => _openPdf(doc.fileUrl!),
-                          icon: const Icon(Icons.picture_as_pdf_outlined, size: 16),
+                          icon: const Icon(
+                            Icons.picture_as_pdf_outlined,
+                            size: 16,
+                          ),
                           label: const Text('Open PDF'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppTheme.success,
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            textStyle: GoogleFonts.roboto(fontSize: 12, fontWeight: FontWeight.bold),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            textStyle: GoogleFonts.roboto(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                     ],
@@ -171,13 +197,9 @@ class _DocumentsViewState extends State<DocumentsView> {
                     controller: scrollController,
                     padding: const EdgeInsets.all(24),
                     children: [
-                      Text(
-                        doc.content ?? 'No content available.',
-                        style: GoogleFonts.roboto(
-                          fontSize: 15,
-                          color: Colors.white.withOpacity(0.9),
-                          height: 1.6,
-                        ),
+                      MarkdownText(
+                        text: doc.content ?? 'No content available.',
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
                       ),
                     ],
                   ),
@@ -215,7 +237,10 @@ class _DocumentsViewState extends State<DocumentsView> {
               const SizedBox(height: 12),
               Text(
                 'Choose a strategy document for AI to formulate based on your business idea.',
-                style: GoogleFonts.roboto(fontSize: 13, color: AppTheme.textSecondaryDark),
+                style: GoogleFonts.roboto(
+                  fontSize: 13,
+                  color: AppTheme.textSecondaryDark,
+                ),
               ),
               const SizedBox(height: 20),
               Flexible(
@@ -227,10 +252,17 @@ class _DocumentsViewState extends State<DocumentsView> {
                     final item = _docTypes[index];
                     return ListTile(
                       contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.auto_awesome, color: AppTheme.accent),
+                      leading: const Icon(
+                        Icons.auto_awesome,
+                        color: AppTheme.accent,
+                      ),
                       title: Text(
                         item['label']!,
-                        style: GoogleFonts.roboto(color: Colors.white, fontSize: 14.5, fontWeight: FontWeight.w500),
+                        style: GoogleFonts.roboto(
+                          color: Colors.white,
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                       onTap: () {
                         Navigator.pop(context);
@@ -259,7 +291,11 @@ class _DocumentsViewState extends State<DocumentsView> {
             children: [
               Text(
                 'Business Vault',
-                style: GoogleFonts.dmSans(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                style: GoogleFonts.dmSans(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
               ElevatedButton.icon(
                 onPressed: _generating ? null : _showGenerateMenu,
@@ -267,7 +303,10 @@ class _DocumentsViewState extends State<DocumentsView> {
                     ? const SizedBox(
                         width: 14,
                         height: 14,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : const Icon(Icons.add_rounded, size: 16),
                 label: Text(_generating ? 'Generating...' : 'New Document'),
@@ -279,73 +318,93 @@ class _DocumentsViewState extends State<DocumentsView> {
         // Documents list
         Expanded(
           child: _loading
-              ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+              ? const Center(
+                  child: CircularProgressIndicator(color: AppTheme.primary),
+                )
               : _documents.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.folder_open_outlined, size: 48, color: Colors.white.withOpacity(0.12)),
-                          const SizedBox(height: 12),
-                          Text(
-                            'No documents generated yet.',
-                            style: GoogleFonts.roboto(fontSize: 14, color: AppTheme.textSecondaryDark),
-                          ),
-                        ],
+              ? Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.folder_open_outlined,
+                        size: 48,
+                        color: Colors.white.withOpacity(0.12),
                       ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      itemCount: _documents.length,
-                      itemBuilder: (context, index) {
-                        final doc = _documents[index];
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: AppTheme.darkCard,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.white.withOpacity(0.04)),
-                          ),
-                          child: InkWell(
-                            onTap: () => _showDocumentViewer(doc),
-                            child: Row(
-                              children: [
-                                CircleAvatar(
-                                  backgroundColor: AppTheme.primary.withOpacity(0.1),
-                                  child: const Icon(Icons.insert_drive_file_outlined, color: AppTheme.primary),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        doc.title,
-                                        style: GoogleFonts.roboto(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'Type: ${doc.type.toUpperCase().replaceAll('_', ' ')}',
-                                        style: GoogleFonts.roboto(
-                                          fontSize: 11.5,
-                                          color: AppTheme.textSecondaryDark,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppTheme.textSecondaryDark),
-                              ],
+                      const SizedBox(height: 12),
+                      Text(
+                        'No documents generated yet.',
+                        style: GoogleFonts.roboto(
+                          fontSize: 14,
+                          color: AppTheme.textSecondaryDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: _documents.length,
+                  itemBuilder: (context, index) {
+                    final doc = _documents[index];
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppTheme.darkCard,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.04),
+                        ),
+                      ),
+                      child: InkWell(
+                        onTap: () => _showDocumentViewer(doc),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              backgroundColor: AppTheme.primary.withOpacity(
+                                0.1,
+                              ),
+                              child: const Icon(
+                                Icons.insert_drive_file_outlined,
+                                color: AppTheme.primary,
+                              ),
                             ),
-                          ),
-                        );
-                      },
-                    ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    doc.title,
+                                    style: GoogleFonts.roboto(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Type: ${doc.type.toUpperCase().replaceAll('_', ' ')}',
+                                    style: GoogleFonts.roboto(
+                                      fontSize: 11.5,
+                                      color: AppTheme.textSecondaryDark,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 14,
+                              color: AppTheme.textSecondaryDark,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
         ),
       ],
     );
