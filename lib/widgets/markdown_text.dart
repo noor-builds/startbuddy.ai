@@ -258,7 +258,7 @@ class _InlineMarkdownText extends StatelessWidget {
         children: spans,
       ),
       maxLines: maxLines,
-      overflow: maxLines == null ? TextOverflow.clip : overflow!,
+      overflow: overflow ?? TextOverflow.clip,
     );
   }
 
