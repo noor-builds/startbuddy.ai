@@ -7,6 +7,7 @@ import 'package:flutter_web_plugins/url_strategy.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
   usePathUrlStrategy();
 
   const supabaseUrl = String.fromEnvironment(

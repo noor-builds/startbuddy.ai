@@ -47,8 +47,35 @@ class _DocumentsViewState extends State<DocumentsView> {
       final data = await _db.fetchDocumentsForStartup(widget.startup.id);
 
       if (!mounted) return;
+      final docs =
+          data.map((d) => StartupDocument.fromJson(d)).toList();
+
+      // The validation report is stored on the startup table (as a signed PDF
+      // URL), not the documents table. Surface it here as a vault document
+      // with an "Open PDF" action.
+      final report = widget.startup.validationReport;
+      if (report != null && report.trim().isNotEmpty) {
+        final isUrl = report.trim().startsWith('http');
+        docs.insert(
+          0,
+          StartupDocument(
+            id: -1,
+            createdAt: DateTime.now(),
+            authid: widget.startup.authid ?? '',
+            startupId: widget.startup.id,
+            title: 'Validation Report',
+            type: 'validation_report',
+            content: isUrl
+                ? 'Your AI-generated market validation report is ready as a PDF. '
+                    'Tap "Open PDF" above to view the full report.'
+                : report,
+            fileUrl: isUrl ? report : null,
+          ),
+        );
+      }
+
       setState(() {
-        _documents = data.map((d) => StartupDocument.fromJson(d)).toList();
+        _documents = docs;
         _loading = false;
       });
     } catch (e) {

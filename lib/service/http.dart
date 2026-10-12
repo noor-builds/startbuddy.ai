@@ -12,7 +12,7 @@ class HttpService {
       defaultValue: 'https://startbuddybackend.vercel.app',
     );
   }
-
+// 
   Future<http.Response> validate(String prompt) async {
     final body = <String, dynamic>{
       'prompt': prompt,

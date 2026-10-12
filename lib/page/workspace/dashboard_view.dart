@@ -26,6 +26,7 @@ class _DashboardViewState extends State<DashboardView> {
   bool _loading = true;
   bool _generatingBlueprint = false;
   String? _error;
+  String? _blueprintError;
 
   List<StartupTask> _tasks = [];
   List<StartupDocument> _documents = [];
@@ -77,33 +78,47 @@ class _DashboardViewState extends State<DashboardView> {
     if (_generatingBlueprint) return;
     setState(() {
       _generatingBlueprint = true;
+      _blueprintError = null;
     });
 
     try {
       final response = await _http.generateBlueprint(widget.startup.id);
-      final body = jsonDecode(response.body);
 
-      if (response.statusCode >= 200 &&
-          response.statusCode < 300 &&
-          body['ok'] == true) {
-        await _loadDashboardData();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Startup Blueprint generated successfully!'),
-            ),
-          );
-        }
-      } else {
+      if (response.statusCode < 200 || response.statusCode >= 300) {
         throw Exception(
-          body['error']?['message'] ?? 'Failed to generate blueprint',
+          _blueprintResponseError(response.body, response.statusCode),
+        );
+      }
+
+      final dynamic body;
+      try {
+        body = jsonDecode(response.body);
+      } on FormatException {
+        throw Exception(
+          'Blueprint service returned an invalid response '
+          '(HTTP ${response.statusCode}).',
+        );
+      }
+
+      if (body is! Map || body['ok'] != true) {
+        throw Exception(
+          _blueprintResponseError(response.body, response.statusCode),
+        );
+      }
+
+      await _loadDashboardData();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Startup Blueprint generated successfully!'),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.error),
-        );
+        setState(() {
+          _blueprintError = e.toString().replaceFirst('Exception: ', '');
+        });
       }
     } finally {
       if (mounted) {
@@ -112,6 +127,29 @@ class _DashboardViewState extends State<DashboardView> {
         });
       }
     }
+  }
+
+  String _blueprintResponseError(String responseBody, int statusCode) {
+    try {
+      final decoded = jsonDecode(responseBody);
+      if (decoded is Map) {
+        final error = decoded['error'];
+        if (error is Map && error['message'] is String) {
+          return error['message'] as String;
+        }
+        if (error is String && error.isNotEmpty) {
+          return error;
+        }
+        final message = decoded['message'];
+        if (message is String && message.isNotEmpty) {
+          return message;
+        }
+      }
+    } on FormatException {
+      // Non-JSON service errors use the status code fallback below.
+    }
+
+    return 'Failed to generate blueprint (HTTP $statusCode). Please try again.';
   }
 
   @override
@@ -295,6 +333,17 @@ class _DashboardViewState extends State<DashboardView> {
                               color: AppTheme.textSecondaryDark,
                             ),
                           ),
+                          if (_blueprintError != null) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              'Could not generate blueprint: $_blueprintError',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.roboto(
+                                fontSize: 13,
+                                color: AppTheme.error,
+                              ),
+                            ),
+                          ],
                           const SizedBox(height: 20),
                           ElevatedButton(
                             onPressed: _generatingBlueprint

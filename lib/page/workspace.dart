@@ -416,7 +416,7 @@ class WorkspaceDrawer extends StatelessWidget {
               style: GoogleFonts.roboto(color: Colors.white70, fontSize: 14),
             ),
             onTap: () {
-              context.go('/startups'); // Go back to startups screen
+              context.go('/my-startups'); // Go back to startups screen 
             },
           ),
         ],

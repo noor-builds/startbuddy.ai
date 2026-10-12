@@ -2,6 +2,17 @@ import { createChatModel } from './llm.js';
 import { supabaseAdmin } from '../../db.js';
 import { HumanMessage, SystemMessage } from '@langchain/core/messages';
 
+const FALLBACK_MODEL = process.env.GEMINI_FALLBACK_MODEL ?? 'gemini-2.5-flash-lite';
+
+function isTransientModelError(error) {
+  const status = error?.status ?? error?.statusCode ?? error?.response?.status;
+  const details = `${error?.code ?? ''} ${error?.message ?? ''}`;
+
+  return status === 429 ||
+    status === 503 ||
+    /\b(UNAVAILABLE|RESOURCE_EXHAUSTED)\b/i.test(details);
+}
+
 async function generateBlueprint({ authId, startupId }) {
   // 1. Fetch startup details
   const { data: startup, error: startupError } = await supabaseAdmin
@@ -16,8 +27,7 @@ async function generateBlueprint({ authId, startupId }) {
   }
 
   // 2. Query LLM to generate the blueprint
-  const model = createChatModel({ temperature: 0.3 });
-  const response = await model.invoke([
+  const messages = [
     new SystemMessage(
       `You are an expert startup strategist. Generate a comprehensive Startup Blueprint for the user's startup.
 The blueprint must cover the following sections in detail:
@@ -33,11 +43,30 @@ Format the output in beautiful, clean Markdown with proper headings (using ## fo
     new HumanMessage(
       `Startup Name: ${startup.startupName}\nStartup Description: ${startup.description}`
     ),
-  ]);
+  ];
+
+  let response;
+  try {
+    response = await createChatModel({ temperature: 0.3 }).invoke(messages);
+  } catch (error) {
+    if (!isTransientModelError(error)) throw error;
+
+    console.warn(
+      `Primary Gemini model temporarily unavailable; retrying blueprint with ${FALLBACK_MODEL}.`
+    );
+    response = await createChatModel({
+      model: FALLBACK_MODEL,
+      temperature: 0.3,
+    }).invoke(messages);
+  }
 
   const contentText = typeof response.text === 'string'
     ? response.text.trim()
     : String(response.content ?? '').trim();
+
+  if (!contentText) {
+    throw new Error('Gemini returned an empty startup blueprint.');
+  }
 
   // 3. Save to documents table
   const { data: doc, error: docError } = await supabaseAdmin
